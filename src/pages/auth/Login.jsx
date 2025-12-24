@@ -181,10 +181,10 @@ const Login = () => {
         <div className="auth-footer">
           <p>Don't have an account? <Link to="/register">Sign up here</Link></p>
           <p className="demo-credentials">
-            <strong>Demo Credentials:</strong><br/>
-            Patient: patient@example.com / password123<br/>
-            Doctor: doctor@example.com / password123<br/>
-            Admin: admin@example.com / password123
+            <strong>Demo Credentials (seeded):</strong><br/>
+            Doctor: doctor.user@example.com / DoctorPass123 (role: doctor)<br/>
+            Admin: admin.user@example.com / AdminPass123 (role: admin)<br/>
+            <em>Run <code>python backend/create_test_users.py</code> to seed these accounts.</em>
           </p>
         </div>
       </div>
