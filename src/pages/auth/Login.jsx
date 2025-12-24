@@ -182,6 +182,7 @@ const Login = () => {
           <p>Don't have an account? <Link to="/register">Sign up here</Link></p>
           <p className="demo-credentials">
             <strong>Demo Credentials (seeded):</strong><br/>
+            Patient: patient.user@example.com / PatientPass123 (role: patient)<br/>
             Doctor: doctor.user@example.com / DoctorPass123 (role: doctor)<br/>
             Admin: admin.user@example.com / AdminPass123 (role: admin)<br/>
             <em>Run <code>python backend/create_test_users.py</code> to seed these accounts.</em>

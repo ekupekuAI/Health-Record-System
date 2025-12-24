@@ -61,7 +61,8 @@ cd backend
 python create_test_users.py
 ```
 
-This script will attempt to insert two users if they don't already exist:
+This script will attempt to insert sample users if they don't already exist:
+- Patient: `patient.user@example.com` / `PatientPass123` (role: `patient`)
 - Doctor: `doctor.user@example.com` / `DoctorPass123` (role: `doctor`)
 - Admin:  `admin.user@example.com`  / `AdminPass123`  (role: `admin`)
 

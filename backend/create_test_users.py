@@ -33,6 +33,14 @@ samples = [
     }
 ]
 
+# Add a patient sample account for testing/demo purposes
+samples.append({
+    'name': 'Patient User',
+    'email': 'patient.user@example.com',
+    'password': 'PatientPass123',
+    'role': 'patient'
+})
+
 for s in samples:
     email = s['email'].lower().strip()
     existing = users.find_one({'email': email})
