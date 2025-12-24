@@ -391,4 +391,4 @@ For questions about this prototype:
 
 ---
 
-**Note**: This is a working prototype designed to demonstrate UI/UX concepts and application flow. It is not intended for production use without significant security, performance, and compliance enhancements.
+**Note**: This is a working Full Stack project designed to demonstrate UI/UX concepts and application flow. It is not intended for production use without significant security, performance, and compliance enhancements.
