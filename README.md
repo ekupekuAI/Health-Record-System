@@ -1,3 +1,142 @@
+# Health Record System
+
+This repository contains a working prototype of a Health Record System with a React frontend and a simple Flask + MongoDB backend. It is provided as a development prototype and is not production-ready.
+
+## Repository layout
+
+- `src/` — React frontend source (Vite + React 18)
+- `index.html`, `package.json`, `vite.config.js` — frontend project files
+- `backend/` — Flask backend and utility scripts
+  - `backend/app.py` — Flask app entry point
+  - `backend/config.py` — DB and auth configuration (default `MONGO_URI`, `JWT_SECRET`)
+  - `backend/requirements.txt` — Python dependencies
+  - `backend/create_test_users.py` — helper to seed sample admin/doctor users
+
+## Quick start
+
+Prerequisites
+- Node.js 16+ and `npm`
+- Python 3.10+ (or compatible)
+- MongoDB (local or remote)
+
+1) Clone and install frontend deps
+
+```bash
+cd "d:\Ekansh  Files\HRS\Health Record"
+npm install
+```
+
+2) Prepare a Python virtual environment and install backend deps
+
+Windows (PowerShell):
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Linux / macOS:
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+3) Configure environment (optional)
+
+- `MONGO_URI` — MongoDB connection string (default: `mongodb://localhost:27017/`)
+- `JWT_SECRET` — Secret for signing JWTs (default in `config.py` is `change-me-in-prod` — change this for any real use)
+- `JWT_EXP_HOURS` — Optional token lifetime (defaults to `1` hour)
+
+You can export these before running the backend, or set them in your environment.
+
+4) Seed demo users (optional)
+
+```bash
+cd backend
+python create_test_users.py
+```
+
+This script will attempt to insert two users if they don't already exist:
+- Doctor: `doctor.user@example.com` / `DoctorPass123` (role: `doctor`)
+- Admin:  `admin.user@example.com`  / `AdminPass123`  (role: `admin`)
+
+5) Run backend and frontend
+
+Run backend (Flask):
+
+```bash
+cd backend
+python app.py
+# Backend will listen on http://0.0.0.0:5000 by default
+```
+
+Run frontend (Vite dev server):
+
+```bash
+cd "d:\Ekansh  Files\HRS\Health Record"
+npm run dev
+# Frontend will be available at http://localhost:5173 (or the port printed by Vite)
+```
+
+## API highlights
+
+- `POST /api/auth/register` — register a new user (expects `name`, `email`, `password`, optional `role`)
+- `POST /api/auth/login` — authenticate and receive a JWT
+- `GET /api/users/me` — (protected) fetch current user profile (requires `Authorization: Bearer <token>`)
+- `GET /api/health` — simple health endpoint
+- `GET|POST /api/db-test` — test endpoints for inserting and listing documents in `test` collection
+
+Note: The backend uses MongoDB via `pymongo` and the database and JWT configuration is controlled in `backend/config.py` (or by the environment variables listed above).
+
+## Frontend notes
+
+- The frontend is a Vite + React app located under `src/` using React Router and a small `AuthContext` for authentication state.
+- Scripts available in `package.json`: `dev`, `build`, `preview`.
+
+## Security & Production notes
+
+- This project is a prototype. Before any production deployment you should:
+  - Harden authentication and rotate `JWT_SECRET`.
+  - Use HTTPS and secure CORS configuration.
+  - Validate and sanitize all inputs on the backend.
+  - Configure a production-grade MongoDB deployment and credentials.
+  - Add logging, monitoring, and backup/restore procedures.
+
+## Helpful commands
+
+Frontend:
+```bash
+npm install
+npm run dev       # start dev server
+npm run build     # production build
+npm run preview   # preview the built app
+```
+
+Backend:
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python create_test_users.py  # optional seed users
+python app.py
+```
+
+## Contact / next steps
+
+If you want, I can:
+- add a `.env.example` file documenting the environment variables
+- add a `Procfile` / docker-compose for easier local orchestration
+- run a quick smoke test of frontend ↔ backend endpoints (if you want me to run them here)
+
+---
+
+This README was updated to reflect the actual Flask backend and MongoDB usage present in the `backend/` folder, and to provide accurate run instructions for both frontend and backend.
 # Health Record System - Working Prototype
 
 A comprehensive, modern health record management system built as a working prototype using React, featuring role-based access control, appointment management, medical records tracking, and professional healthcare UI/UX design.
