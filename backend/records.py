@@ -31,19 +31,30 @@ def create_record():
         return jsonify({'error': 'Only doctors can create medical records'}), 403
 
     data = request.get_json(silent=True) or {}
-    patient_id = (data.get('patient_id') or '').strip()
-    diagnosis = data.get('diagnosis')
-    prescription = data.get('prescription')
+    patient_id = data.get('patient_id') or ''
+    diagnosis = data.get('diagnosis') or ''
+    prescription = data.get('prescription') or ''
     notes = data.get('notes') or ''
+    if not all(isinstance(v, str) for v in (patient_id, diagnosis, prescription, notes)):
+        return jsonify({'error': 'Invalid record data'}), 400
+    patient_id = patient_id.strip()
 
     if not patient_id:
         return jsonify({'error': 'patient_id is required'}), 400
 
     # Require at least diagnosis or prescription
-    if not diagnosis and not prescription:
+    if not diagnosis.strip() and not prescription.strip():
         return jsonify({'error': 'At least diagnosis or prescription is required'}), 400
 
     users = get_collection('users')
+    # The patient must exist and be under this doctor's care (an appointment with them);
+    # otherwise any doctor could write into any patient's chart.
+    patient = users.find_one({'_id': ObjectId(patient_id)}) if ObjectId.is_valid(patient_id) else None
+    if not patient or patient.get('role') != 'patient':
+        return jsonify({'error': 'Patient not found'}), 404
+    if not get_collection('appointments').find_one({'doctor_id': uid, 'patient_id': patient_id}):
+        return jsonify({'error': 'Forbidden'}), 403
+
     try:
         doctor_doc = users.find_one({'_id': ObjectId(uid)})
     except Exception:

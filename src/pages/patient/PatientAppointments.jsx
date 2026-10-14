@@ -30,7 +30,9 @@ const PatientAppointments = () => {
               id: a._id || a.id,
               doctor: doctorName,
               specialization: '',
-              date: isNaN(dt) ? a.datetime : dt.toISOString().split('T')[0],
+              // Keep the full local date-time: toISOString() converted to UTC and could shift the day.
+              date: a.datetime,
+              datetime: a.datetime,
               time: isNaN(dt) ? '' : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               status: a.status,
               type: a.type || 'Consultation',
@@ -69,11 +71,11 @@ const PatientAppointments = () => {
 
   const filteredAppointments = appointments.filter(apt => {
     const today = new Date()
-    const appointmentDate = new Date(apt.date)
-    
+    const appointmentDate = new Date(apt.datetime)
+
     switch (activeTab) {
       case 'upcoming':
-        return appointmentDate >= today && apt.status !== 'cancelled'
+        return appointmentDate >= today && (apt.status === 'pending' || apt.status === 'approved')
       case 'pending':
         return apt.status === 'pending'
       case 'completed':
@@ -224,7 +226,9 @@ const PatientAppointments = () => {
                 </div>
                 
                 <div className="card-footer">
-                  {appointment.status === 'approved' && new Date(appointment.date) >= new Date() && (
+                  {/* Pending requests can be withdrawn too (the API allows it). The old "Reschedule" and
+                      "View Details" buttons were alert() placeholders; all details are already on this card. */}
+                  {(appointment.status === 'approved' || appointment.status === 'pending') && new Date(appointment.datetime) >= new Date() && (
                     <button
                       className="btn btn-outline btn-sm"
                       onClick={() => handleCancelAppointment(appointment.id)}
@@ -233,22 +237,6 @@ const PatientAppointments = () => {
                       Cancel Appointment
                     </button>
                   )}
-                  {appointment.status === 'pending' && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => alert('Reschedule functionality would be implemented here')}
-                    >
-                      <i className="fas fa-calendar-alt"></i>
-                      Reschedule
-                    </button>
-                  )}
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => alert('View details functionality would be implemented here')}
-                  >
-                    <i className="fas fa-eye"></i>
-                    View Details
-                  </button>
                 </div>
               </div>
             ))}

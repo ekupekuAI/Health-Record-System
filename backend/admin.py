@@ -17,10 +17,13 @@ def _sanitize_user(doc: dict):
     u['_id'] = str(u.get('_id'))
     u.pop('password', None)
     # normalize createdAt/created_at
+    # These timestamps are stored in UTC: add 'Z' so browsers don't read them as local time.
     if 'created_at' in u:
-        u['createdAt'] = u['created_at'].isoformat() if hasattr(u['created_at'], 'isoformat') else u['created_at']
+        u['createdAt'] = u['created_at'].isoformat() + 'Z' if hasattr(u['created_at'], 'isoformat') else u['created_at']
     elif 'createdAt' not in u:
         u['createdAt'] = ''
+    last_login = u.pop('last_login', None)
+    u['lastLogin'] = last_login.isoformat() + 'Z' if hasattr(last_login, 'isoformat') else ''
     # ensure status
     u['status'] = u.get('status', 'active')
     return u
@@ -56,8 +59,18 @@ def get_user(user_id):
 
     target_id_str = str(target.get('_id'))
 
+    # Any signed-in user may see a doctor's public card (needed to show doctor names on appointments).
+    if target.get('role') == 'doctor' and role != 'admin' and uid != target_id_str:
+        return jsonify({'user': {
+            'id': target_id_str,
+            '_id': target_id_str,
+            'name': target.get('name'),
+            'role': 'doctor',
+            'profile': {'specialization': (target.get('profile') or {}).get('specialization', '')},
+        }})
+
     # Authorization checks
-    if role == 'admin':
+    if role == 'admin' or uid == target_id_str:
         pass
     elif role == 'patient':
         if uid != target_id_str:
@@ -76,6 +89,8 @@ def get_user(user_id):
 
     resp = {
         'id': target_id_str,
+        '_id': target_id_str,  # the frontend reads `_id`
+        'profile': target.get('profile') or {},
         'name': target.get('name'),
         'email': target.get('email'),
         'role': target.get('role'),
@@ -97,10 +112,15 @@ def list_users():
         if not user:
             return jsonify({'error': 'Authentication required'}), 401
         col = get_collection('users')
-        docs = list(col.find({'role': 'doctor', 'status': 'active'}).sort('created_at', -1))
+        # Accounts created before `status` existed have no status field: treat them as active.
+        docs = list(col.find({'role': 'doctor', 'status': {'$ne': 'inactive'}}).sort('created_at', -1))
         users = []
         for d in docs:
             u = _sanitize_user(d)
+            if user.get('role') != 'admin':
+                # Non-admins only need a public card for the booking dropdown.
+                u = {k: u.get(k) for k in ('id', '_id', 'name', 'role', 'status')}
+                u['profile'] = {'specialization': (d.get('profile') or {}).get('specialization', '')}
             users.append(u)
         return jsonify({'users': users})
 
@@ -126,17 +146,22 @@ def create_user():
         return jsonify({'error': 'Admin access required'}), 403
 
     data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
-    email = (data.get('email') or '').lower().strip()
+    name = data.get('name') or ''
+    email = data.get('email') or ''
     password = data.get('password')
-    role = (data.get('role') or 'patient').strip()
-    status = (data.get('status') or 'active').strip()
+    role = data.get('role') or 'patient'
+    status = data.get('status') or 'active'
+    if not all(isinstance(v, str) for v in (name, email, role, status)) or not isinstance(password, str):
+        return jsonify({'error': 'Invalid user data'}), 400
+    name, email = name.strip(), email.lower().strip()
 
     if not name or not email or not password:
         return jsonify({'error': 'name, email and password are required'}), 400
 
     if role not in ('patient', 'doctor', 'admin'):
         return jsonify({'error': 'Invalid role'}), 400
+    if status not in ('active', 'inactive'):
+        return jsonify({'error': 'Invalid status'}), 400
 
     col = get_collection('users')
     if col.find_one({'email': email}):
@@ -175,6 +200,14 @@ def update_user(user_id):
     if not target:
         return jsonify({'error': 'User not found'}), 404
 
+    for f in ('email', 'name', 'role', 'status', 'password'):
+        if f in data and data.get(f) is not None and not isinstance(data.get(f), str):
+            return jsonify({'error': f'{f} must be text'}), 400
+    # An admin demoting or deactivating themselves could lock everyone out of administration.
+    if str(target['_id']) == user.get('user_id') and (
+            data.get('role', 'admin') != 'admin' or data.get('status', 'active') != 'active'):
+        return jsonify({'error': 'You cannot demote or deactivate your own account'}), 400
+
     # email uniqueness
     if 'email' in data:
         new_email = (data.get('email') or '').lower().strip()
@@ -186,7 +219,9 @@ def update_user(user_id):
         updates['email'] = new_email
 
     if 'name' in data:
-        updates['name'] = data.get('name')
+        if not (data.get('name') or '').strip():
+            return jsonify({'error': 'Name is required'}), 400
+        updates['name'] = data.get('name').strip()
 
     if 'role' in data:
         r = (data.get('role') or '').strip()

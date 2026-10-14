@@ -44,8 +44,10 @@ const AppointmentList = () => {
               patientName,
               doctorName,
               specialization: '',
-              date: isNaN(dt) ? a.datetime : dt.toISOString().split('T')[0],
-              time: isNaN(dt) ? '' : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              // Local yyyy-MM-dd / HH:mm: the edit form's date/time inputs and the API both use this format
+              // (toISOString() gave the UTC day and the locale time string couldn't be edited or saved).
+              date: isNaN(dt) ? '' : format(dt, 'yyyy-MM-dd'),
+              time: isNaN(dt) ? '' : format(dt, 'HH:mm'),
               status: a.status,
               type: a.type || 'Consultation',
               notes: a.notes || ''
@@ -104,11 +106,11 @@ const AppointmentList = () => {
         const res = await fetch(`/api/appointments/${updated.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(updated)
+          body: JSON.stringify({ date: updated.date, time: updated.time })
         })
         if (res.ok) {
           const data = await res.json()
-          setAppointments(appointments.map(a => a.id === updated.id ? { ...a, ...data.appointment } : a))
+          setAppointments(appointments.map(a => a.id === updated.id ? { ...a, date: updated.date, time: updated.time, status: data.appointment.status } : a))
         } else {
           const err = await res.json()
           alert(err.error || 'Failed to save')
@@ -147,12 +149,16 @@ const AppointmentList = () => {
             <option value="all">All Appointments</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
+            <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <Link to="/appointments/book" className="btn btn-primary">
-            <i className="fas fa-plus"></i>
-            Book Appointment
-          </Link>
+          {/* Only patients can book (the API rejects doctors/admins). */}
+          {user?.role === 'patient' && (
+            <Link to="/appointments/book" className="btn btn-primary">
+              <i className="fas fa-plus"></i>
+              Book Appointment
+            </Link>
+          )}
         </div>
       </div>
 
@@ -187,7 +193,7 @@ const AppointmentList = () => {
                   <td>
                     <div className="appointment-datetime">
                       <div className="appointment-date">
-                        {format(new Date(appointment.date), 'MMM dd, yyyy')}
+                        {appointment.date ? format(new Date(`${appointment.date}T00:00`), 'MMM dd, yyyy') : ''}
                       </div>
                       <div className="appointment-time">{appointment.time}</div>
                     </div>
@@ -200,7 +206,8 @@ const AppointmentList = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      {appointment.status === 'pending' && (
+                      {/* Status changes are the doctor's decision; the API forbids admins from making them. */}
+                      {user?.role === 'doctor' && appointment.status === 'pending' && (
                         <button
                           className="btn btn-sm btn-success"
                           onClick={() => handleStatusChange(appointment.id, 'approved')}
@@ -209,7 +216,16 @@ const AppointmentList = () => {
                           <i className="fas fa-check"></i>
                         </button>
                       )}
-                      {appointment.status === 'approved' && (
+                      {user?.role === 'doctor' && appointment.status === 'approved' && (
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => handleStatusChange(appointment.id, 'completed')}
+                          title="Mark completed"
+                        >
+                          <i className="fas fa-check-double"></i>
+                        </button>
+                      )}
+                      {user?.role === 'doctor' && appointment.status === 'approved' && (
                         <button
                           className="btn btn-sm btn-error"
                           onClick={() => handleStatusChange(appointment.id, 'cancelled')}
@@ -218,13 +234,16 @@ const AppointmentList = () => {
                           <i className="fas fa-times"></i>
                         </button>
                       )}
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        title="Edit"
-                        onClick={() => { setEditingAppointment(appointment); setShowEditModal(true) }}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
+                      {/* Rescheduling is for doctors/admins; the API only lets patients cancel. */}
+                      {user?.role !== 'patient' && (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          title="Edit"
+                          onClick={() => { setEditingAppointment(appointment); setShowEditModal(true) }}
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -417,11 +436,11 @@ const AppointmentList = () => {
               <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(editingAppointment); }} className="edit-appointment-form">
                 <div className="form-group">
                   <label className="form-label">Patient</label>
-                  <input type="text" className="form-control" value={editingAppointment.patientName} onChange={(e) => setEditingAppointment({ ...editingAppointment, patientName: e.target.value })} />
+                  <input type="text" className="form-control" value={editingAppointment.patientName} readOnly />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Doctor</label>
-                  <input type="text" className="form-control" value={editingAppointment.doctorName} onChange={(e) => setEditingAppointment({ ...editingAppointment, doctorName: e.target.value })} />
+                  <input type="text" className="form-control" value={editingAppointment.doctorName} readOnly />
                 </div>
                 <div className="form-row">
                   <div className="form-group">

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { format } from 'date-fns'
 
+// format() throws on invalid dates, which crashed the whole dashboard when a patient had no visit dates.
+const isValidDate = (value) => !!value && !isNaN(new Date(value))
+
 const DoctorDashboard = () => {
   const { user } = useAuth()
   const [todayAppointments, setTodayAppointments] = useState([])
@@ -25,7 +28,9 @@ const DoctorDashboard = () => {
         let appts = []
         if (res.ok && Array.isArray(data.appointments)) {
           // filter today's appointments for this doctor
-          const todayStr = new Date().toISOString().slice(0, 10)
+          // Local calendar date (toISOString() would give the UTC date and miss/shift today's visits).
+          const now = new Date()
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
           appts = data.appointments.filter(a => (a.doctor_id === user?.id) && (a.datetime?.slice(0,10) === todayStr))
           // map to UI shape
           const mapped = await Promise.all(appts.map(async (a) => {
@@ -235,16 +240,20 @@ const DoctorDashboard = () => {
                   <div className="patient-details">
                     <h4 className="patient-name">{patient.name}</h4>
                     <p className="patient-condition">{patient.condition}</p>
-                    <p className="last-visit">
-                      Last visit: {format(new Date(patient.lastVisit), 'MMM dd, yyyy')}
-                    </p>
+                    {isValidDate(patient.lastVisit) && (
+                      <p className="last-visit">
+                        Last visit: {format(new Date(patient.lastVisit), 'MMM dd, yyyy')}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="patient-status">
                   {getPatientStatusBadge(patient.status)}
-                  <p className="next-appointment">
-                    Next: {format(new Date(patient.nextAppointment), 'MMM dd')}
-                  </p>
+                  {isValidDate(patient.nextAppointment) && (
+                    <p className="next-appointment">
+                      Next: {format(new Date(patient.nextAppointment), 'MMM dd')}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -276,13 +285,14 @@ const DoctorDashboard = () => {
             </div>
           </a>
           
-          <a href="/doctor/prescription/new" className="action-card">
+          {/* Prescriptions are written for a specific patient, so start from the patient list. */}
+          <a href="/doctor/patients" className="action-card">
             <div className="action-icon">
               <i className="fas fa-prescription"></i>
             </div>
             <div className="action-content">
               <h4>New Prescription</h4>
-              <p>Create prescription for patient</p>
+              <p>Choose a patient to prescribe for</p>
             </div>
           </a>
         </div>

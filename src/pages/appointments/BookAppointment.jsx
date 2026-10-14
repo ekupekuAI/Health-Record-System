@@ -47,7 +47,7 @@ const BookAppointment = () => {
         setLoading(false)
         if (res.ok) {
           setSuccess(true)
-          setTimeout(() => navigate('/appointments'), 1000)
+          setTimeout(() => navigate('/patient/appointments'), 1000)
           try { const { showToast } = await import('../../utils/toast'); showToast({ type: 'success', message: 'Appointment requested' }) } catch(e) {}
         } else {
           setErrors({ form: data.error || 'Failed to create appointment' })

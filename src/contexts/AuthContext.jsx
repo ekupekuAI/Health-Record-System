@@ -13,7 +13,7 @@ export const useAuth = () => {
 const API_URL = (
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
   (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) ||
-  'http://localhost:5000'
+  '' // same origin: the Vite dev server proxies /api to the backend (pages already use relative URLs)
 )
 
 const parseBackendUser = (u) => {
@@ -115,8 +115,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('healthRecordUser')
   }
 
+  // Note: no global `loading` toggle here — that unmounted the whole page (and the form) mid-save.
   const updateProfile = async (updatedData) => {
-    setLoading(true)
     const t = token()
     if (!t) return { success: false, error: 'Not authenticated' }
     try {
@@ -127,16 +127,13 @@ export const AuthProvider = ({ children }) => {
       })
       const data = await res.json()
       if (!res.ok) {
-        setLoading(false)
         return { success: false, error: data.error || 'Update failed' }
       }
       const mapped = parseBackendUser(data.user)
       setUser(mapped)
       localStorage.setItem('healthRecordUser', JSON.stringify(mapped))
-      setLoading(false)
       return { success: true }
     } catch (e) {
-      setLoading(false)
       return { success: false, error: 'Network error' }
     }
   }

@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-import db as db_module
+import config
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r'/api/*': {'origins': config.CORS_ORIGINS}})
 
 # Register auth blueprint
 from auth import auth_bp
@@ -28,25 +28,18 @@ def health():
     return jsonify({"status": "Backend running"})
 
 
-@app.route('/api/db-test', methods=['POST'])
-def db_test_post():
-    """Insert a test document into the `test` collection and return inserted ID."""
-    collection = db_module.get_collection('test')
-    payload = request.get_json(silent=True) or {"message": "test document"}
-    result = collection.insert_one(payload)
-    return jsonify({"inserted_id": str(result.inserted_id)}), 201
+@app.after_request
+def no_store(resp):
+    # Responses contain health data: don't let browsers or proxies cache them.
+    resp.headers['Cache-Control'] = 'no-store'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
 
 
-@app.route('/api/db-test', methods=['GET'])
-def db_test_get():
-    """Fetch all documents from the `test` collection and return as JSON."""
-    collection = db_module.get_collection('test')
-    docs = list(collection.find({}))
-    # Convert ObjectId to string for JSON serialization
-    for d in docs:
-        d['_id'] = str(d.get('_id'))
-    return jsonify(docs)
+if config.USE_IN_MEMORY_DB:
+    # In-memory dev database starts empty: seed the demo accounts.
+    import create_test_users  # noqa: F401
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='127.0.0.1', port=config.PORT)

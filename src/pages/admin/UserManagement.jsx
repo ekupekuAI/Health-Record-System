@@ -151,6 +151,8 @@ const UserManagement = () => {
   }
 
   const formatDate = (dateString) => {
+    // Empty values (e.g. a user who never logged in) used to render "Invalid Date".
+    if (!dateString || isNaN(new Date(dateString))) return '—'
     return new Date(dateString).toLocaleDateString()
   }
 

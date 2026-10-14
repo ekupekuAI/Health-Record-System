@@ -48,11 +48,24 @@ pip install -r requirements.txt
 
 3) Configure environment (optional)
 
-- `MONGO_URI` — MongoDB connection string (default: `mongodb://localhost:27017/`)
-- `JWT_SECRET` — Secret for signing JWTs (default in `config.py` is `change-me-in-prod` — change this for any real use)
-- `JWT_EXP_HOURS` — Optional token lifetime (defaults to `1` hour)
+Copy `backend/.env.example` to `backend/.env` (or export the variables). No third-party API keys are needed.
 
-You can export these before running the backend, or set them in your environment.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MONGO_URI` | `mongodb://localhost:27017/` | MongoDB connection string. Set `mongomock://` to run **without MongoDB** (in-memory, demo users auto-seeded, data lost on restart). |
+| `DB_NAME` | `health_record_system` | Database name |
+| `JWT_SECRET` | random per run | Secret for signing login tokens. Set a long random value (`python -c "import secrets; print(secrets.token_urlsafe(48))"`); if unset everyone is signed out on each restart. |
+| `JWT_EXP_HOURS` | `1` | Token lifetime in hours |
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated origins allowed to call the API directly |
+| `PORT` | `5000` | Backend port |
+| `API_PROXY_TARGET` (frontend) | `http://localhost:5000` | Where the Vite dev server proxies `/api` |
+
+Quick demo without MongoDB:
+
+```bash
+cd backend
+MONGO_URI=mongomock:// python app.py
+```
 
 4) Seed demo users (optional)
 
@@ -89,8 +102,13 @@ npm run dev
 - `POST /api/auth/register` — register a new user (expects `name`, `email`, `password`, optional `role`)
 - `POST /api/auth/login` — authenticate and receive a JWT
 - `GET /api/users/me` — (protected) fetch current user profile (requires `Authorization: Bearer <token>`)
+- `PUT /api/users/me` — (protected) update your own name, email and profile
 - `GET /api/health` — simple health endpoint
-- `GET|POST /api/db-test` — test endpoints for inserting and listing documents in `test` collection
+
+## What changed in this version (bug & security fixes)
+
+- **Security:** public sign-up can no longer create admin/doctor accounts (always `patient`); removed the unauthenticated `/api/db-test` endpoint that let anyone read/write the database; no more publicly known default JWT secret; every request re-checks the account in the database, so deactivated/deleted users and role changes take effect immediately (role in the token is not trusted); deactivated users can't log in; doctors can only write records for patients they have an appointment with; non-text input (e.g. `{"$ne": ""}`) is rejected; appointment status values are validated; admins can't demote/deactivate themselves; API responses are `Cache-Control: no-store`; CORS restricted to configured origins.
+- **Bugs:** profile editing now saves (the `PUT /api/users/me` endpoint was missing) and registration stores DOB/gender/phone/address; the doctor dashboard no longer crashes on patients without visit dates; adding a diagnosis/prescription no longer crashes the record page; doctor names show on patient pages (were raw IDs); seeded doctors appear in the booking list; "New Prescription" and "System Reports" no longer link to non-existent pages; appointment dates no longer shift to the UTC day; the edit-appointment form saves; doctors can mark appointments completed; patients can cancel pending requests; removed `alert()` placeholder buttons and fake "Email/Backup" status rows.
 
 Note: The backend uses MongoDB via `pymongo` and the database and JWT configuration is controlled in `backend/config.py` (or by the environment variables listed above).
 

@@ -3,6 +3,16 @@ import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { format } from 'date-fns'
 
+// One shape for records from the list endpoint and from the create endpoint
+// (the raw create response has no `date`, which crashed format() after adding a record).
+const mapRecord = (r) => ({
+  id: r._id,
+  date: r.created_at || r.date || '',
+  doctor: r.doctor_name || r.doctor || '',
+  diagnosis: r.diagnosis || (r.prescription ? `Prescription: ${r.prescription}` : ''),
+  notes: r.notes || ''
+})
+
 const PatientMedicalRecordView = () => {
   const { patientId } = useParams()
   const { user } = useAuth()
@@ -33,7 +43,7 @@ const PatientMedicalRecordView = () => {
         const rres = await fetch(`/api/records/patient/${patientId}`, { headers: { Authorization: `Bearer ${token}` } })
         const rj = await rres.json()
         if (rres.ok && Array.isArray(rj.records)) {
-          setRecords(rj.records.map(r => ({ id: r._id, date: r.created_at || r.date || '', doctor: r.doctor_name || r.doctor || '', diagnosis: r.diagnosis || '', notes: r.notes || '' })))
+          setRecords(rj.records.map(mapRecord))
         }
       } catch (e) {
         console.error('Failed to fetch records', e)
@@ -59,7 +69,7 @@ const PatientMedicalRecordView = () => {
         })
         const data = await res.json()
         if (res.ok) {
-          setRecords([data.record, ...records])
+          setRecords([mapRecord(data.record), ...records])
           setDiagnosisForm({ diagnosis: '', notes: '' })
           setMessage({ type: 'success', text: 'Diagnosis added' })
           setTimeout(() => setMessage(null), 3000)
@@ -89,7 +99,7 @@ const PatientMedicalRecordView = () => {
         })
         const data = await res.json()
         if (res.ok) {
-          setRecords([data.record, ...records])
+          setRecords([mapRecord(data.record), ...records])
           setPrescriptionForm({ medication: '', dosage: '', frequency: '' })
           setMessage({ type: 'success', text: 'Prescription added' })
           setTimeout(() => setMessage(null), 3000)
@@ -104,6 +114,15 @@ const PatientMedicalRecordView = () => {
   }
 
   if (loading) return <div className="loading-overlay"><div className="loading-spinner"></div></div>
+
+  if (!patient) {
+    return (
+      <div className="patient-record-view">
+        <div className="alert alert-error">This patient was not found or is not under your care.</div>
+        <Link to="/doctor/patients" className="btn btn-secondary">Back to Patients</Link>
+      </div>
+    )
+  }
 
   return (
     <div className="patient-record-view">
@@ -171,7 +190,7 @@ const PatientMedicalRecordView = () => {
               {records.map(r => (
                 <div key={r.id} className="record-item">
                   <div className="record-meta">
-                    <span className="record-date">{format(new Date(r.date), 'MMM dd, yyyy')}</span>
+                    <span className="record-date">{r.date && !isNaN(new Date(r.date)) ? format(new Date(r.date), 'MMM dd, yyyy') : ''}</span>
                     <span className="record-doctor">{r.doctor}</span>
                   </div>
                   <div className="record-body">

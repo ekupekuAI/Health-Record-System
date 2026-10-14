@@ -53,6 +53,8 @@ for s in samples:
         'email': email,
         'password': pw_hash.decode('utf-8'),
         'role': s['role'],
+        'status': 'active',
+        'profile': {'specialization': 'General Practice'} if s['role'] == 'doctor' else {},
         'created_at': datetime.utcnow()
     }
     res = users.insert_one(doc)

@@ -33,7 +33,7 @@ const PatientDashboard = () => {
               }
             } catch (e) {}
             const dt = new Date(a.datetime)
-            const date = isNaN(dt) ? a.datetime : dt.toISOString().split('T')[0]
+            const date = a.datetime // local date-time; toISOString() shifted it to the UTC day
             const time = isNaN(dt) ? '' : dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             return {
               id: a._id || a.id,
@@ -69,7 +69,8 @@ const PatientDashboard = () => {
           }
         } catch (e) {}
 
-        setAppointments(mappedAppts)
+        // This page shows *upcoming* appointments only: future and not cancelled/completed.
+        setAppointments(mappedAppts.filter(a => new Date(a.date) >= new Date() && (a.status === 'pending' || a.status === 'approved')))
         setMedicalRecords(records)
         // derive active medications count from records
         const medsCount = records.reduce((acc, r) => {

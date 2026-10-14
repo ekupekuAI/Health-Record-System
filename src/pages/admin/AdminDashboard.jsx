@@ -238,22 +238,7 @@ const AdminDashboard = () => {
                 <span className="status-value">Online</span>
               </div>
             </div>
-            
-            <div className="status-item">
-              <div className="status-indicator warning"></div>
-              <div className="status-info">
-                <span className="status-label">Email Service</span>
-                <span className="status-value">Slow Response</span>
-              </div>
-            </div>
-            
-            <div className="status-item">
-              <div className="status-indicator online"></div>
-              <div className="status-info">
-                <span className="status-label">Backup System</span>
-                <span className="status-value">Operational</span>
-              </div>
-            </div>
+            {/* Removed hard-coded "Email Service: Slow Response" / "Backup System" rows: the app has neither service. */}
           </div>
         </div>
       </div>
@@ -281,16 +266,7 @@ const AdminDashboard = () => {
               <p>View and manage appointments</p>
             </div>
           </a>
-          
-          <a href="/admin/reports" className="action-card">
-            <div className="action-icon">
-              <i className="fas fa-chart-bar"></i>
-            </div>
-            <div className="action-content">
-              <h4>System Reports</h4>
-              <p>Generate and view reports</p>
-            </div>
-          </a>
+          {/* "System Reports" linked to /admin/reports, a page that doesn't exist (it bounced to the login screen). */}
         </div>
       </div>
 

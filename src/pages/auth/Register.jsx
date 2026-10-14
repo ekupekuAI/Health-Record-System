@@ -108,7 +108,7 @@ const Register = () => {
           setErrors({ general: 'Account created. Please sign in.' })
         }
       } else {
-        setErrors({ general: 'Registration failed. Please try again.' })
+        setErrors({ general: result.error || 'Registration failed. Please try again.' })
       }
     } catch (error) {
       setErrors({ general: 'An unexpected error occurred. Please try again.' })
@@ -210,20 +210,9 @@ const Register = () => {
             </div>
           </div>
           
-          <div className="form-group">
-            <label className="form-label">I am registering as</label>
-            <select
-              name="role"
-              className="form-select"
-              value={formData.role}
-              onChange={handleChange}
-              disabled={loading}
-            >
-              <option value="patient">Patient</option>
-              <option value="doctor">Doctor</option>
-              <option value="admin">Administrator</option>
-            </select>
-          </div>
+          <p className="form-text">
+            Sign-up creates a patient account. Doctor and administrator accounts are created by an administrator.
+          </p>
           
           <div className="form-row">
             <div className="form-group">

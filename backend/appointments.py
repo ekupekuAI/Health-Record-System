@@ -7,6 +7,8 @@ from auth import token_required
 
 appointments_bp = Blueprint('appointments', __name__)
 
+VALID_STATUSES = ('pending', 'approved', 'completed', 'cancelled')
+
 
 def _serialize(doc: dict):
     if not doc:
@@ -28,12 +30,15 @@ def create_appointment():
         return jsonify({'error': 'Only patients can create appointments'}), 403
 
     data = request.get_json(silent=True) or {}
-    doctor_id = (data.get('doctor') or data.get('doctor_id') or '').strip()
+    doctor_id = data.get('doctor') or data.get('doctor_id') or ''
     date = data.get('date')
     time = data.get('time')
     appt_type = data.get('type', 'Consultation')
     location = data.get('location', '')
     notes = data.get('notes', '')
+    if not all(isinstance(v, str) for v in (doctor_id, appt_type, location, notes)):
+        return jsonify({'error': 'Invalid appointment data'}), 400
+    doctor_id = doctor_id.strip()
 
     if not doctor_id:
         return jsonify({'error': 'doctor is required'}), 400
@@ -44,7 +49,7 @@ def create_appointment():
         doc_user = users_col.find_one({'_id': _OID(doctor_id)})
     except Exception:
         doc_user = None
-    if not doc_user or doc_user.get('role') != 'doctor':
+    if not doc_user or doc_user.get('role') != 'doctor' or doc_user.get('status', 'active') != 'active':
         return jsonify({'error': 'Invalid doctor_id'}), 400
     if not date or not time:
         return jsonify({'error': 'date and time are required'}), 400
@@ -55,7 +60,8 @@ def create_appointment():
     except Exception:
         return jsonify({'error': 'Invalid date or time format'}), 400
 
-    if dt <= datetime.utcnow():
+    # Dates/times are the clinic's local wall-clock time (what the browser sends), so compare to local now.
+    if dt <= datetime.now():
         return jsonify({'error': 'Appointment must be scheduled in the future'}), 400
 
     col = get_collection('appointments')
@@ -123,6 +129,8 @@ def update_appointment(appointment_id):
     # Patient cancelling own appointment
     if role == 'patient' and (doc.get('patient_id') == uid):
         if data.get('action') == 'cancel' or data.get('status') == 'cancelled':
+            if doc.get('status') not in ('pending', 'approved'):
+                return jsonify({'error': 'Only pending or approved appointments can be cancelled'}), 400
             col.update_one({'_id': doc['_id']}, {'$set': {'status': 'cancelled', 'updated_at': datetime.utcnow()}})
             updated = col.find_one({'_id': doc['_id']})
             return jsonify({'appointment': _serialize(updated)})
@@ -133,16 +141,20 @@ def update_appointment(appointment_id):
     if role == 'doctor' and (doc.get('doctor_id') == uid):
         update_fields = {}
         if 'status' in data:
+            if data.get('status') not in VALID_STATUSES:
+                return jsonify({'error': 'Invalid status'}), 400
             update_fields['status'] = data.get('status')
         # allow some editable fields
         for f in ('type', 'location', 'notes'):
             if f in data:
+                if not isinstance(data.get(f), str):
+                    return jsonify({'error': f'{f} must be text'}), 400
                 update_fields[f] = data.get(f)
         # allow datetime update if provided with date+time or full datetime
         if 'date' in data and 'time' in data:
             try:
                 dt = datetime.strptime(f"{data.get('date')} {data.get('time')}", "%Y-%m-%d %H:%M")
-                if dt <= datetime.utcnow():
+                if dt <= datetime.now():
                     return jsonify({'error': 'Appointment must be scheduled in the future'}), 400
                 # prevent double booking
                 conflict = col.find_one({'doctor_id': uid, 'datetime': dt, 'status': {'$in': ['pending','approved']}, '_id': {'$ne': doc['_id']}})
@@ -169,13 +181,20 @@ def update_appointment(appointment_id):
         update_fields = {}
         for f in ('type', 'location', 'notes'):
             if f in data:
+                if not isinstance(data.get(f), str):
+                    return jsonify({'error': f'{f} must be text'}), 400
                 update_fields[f] = data.get(f)
         if 'date' in data and 'time' in data:
             try:
                 dt = datetime.strptime(f"{data.get('date')} {data.get('time')}", "%Y-%m-%d %H:%M")
-                update_fields['datetime'] = dt
             except Exception:
-                pass
+                return jsonify({'error': 'Invalid date/time format'}), 400
+            if dt <= datetime.now():
+                return jsonify({'error': 'Appointment must be scheduled in the future'}), 400
+            conflict = col.find_one({'doctor_id': doc.get('doctor_id'), 'datetime': dt, 'status': {'$in': ['pending', 'approved']}, '_id': {'$ne': doc['_id']}})
+            if conflict:
+                return jsonify({'error': 'Doctor is already booked at this time'}), 409
+            update_fields['datetime'] = dt
         if not update_fields:
             return jsonify({'error': 'No valid fields to update'}), 400
         update_fields['updated_at'] = datetime.utcnow()

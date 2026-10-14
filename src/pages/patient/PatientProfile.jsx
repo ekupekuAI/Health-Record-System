@@ -110,6 +110,8 @@ const PatientProfile = () => {
         setIsEditing(false)
         setTimeout(() => setSuccess(false), 3000)
         try { const { showToast } = await import('../../utils/toast'); showToast({ type: 'success', message: 'Profile updated' }) } catch(e) {}
+      } else {
+        setErrors({ general: result.error || 'Failed to update profile. Please try again.' })
       }
     } catch (error) {
       setErrors({ general: 'Failed to update profile. Please try again.' })
