@@ -1,412 +1,236 @@
-# Health Record System
+<p align="center"><img src="docs/readme/banner.svg" width="100%" alt="Health Record System — patient records, appointments and prescriptions"></p>
 
-This repository contains a working prototype of a Health Record System with a React frontend and a simple Flask + MongoDB backend. It is provided as a development prototype and is not production-ready.
+<p align="center">
+  <img alt="React 18" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white">
+  <img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white">
+  <img alt="Flask" src="https://img.shields.io/badge/Flask-API-000000?logo=flask&logoColor=white">
+  <img alt="MongoDB" src="https://img.shields.io/badge/MongoDB-PyMongo-47A248?logo=mongodb&logoColor=white">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <img alt="Auth" src="https://img.shields.io/badge/Auth-JWT%20%2B%20bcrypt-0b8f8d">
+  <img alt="Status" src="https://img.shields.io/badge/status-prototype-orange">
+</p>
 
-## Repository layout
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=react,vite,js,css,python,flask,mongodb" alt="Tech stack: React, Vite, JavaScript, CSS, Python, Flask, MongoDB">
+</p>
 
-- `src/` — React frontend source (Vite + React 18)
-- `index.html`, `package.json`, `vite.config.js` — frontend project files
-- `backend/` — Flask backend and utility scripts
-  - `backend/app.py` — Flask app entry point
-  - `backend/config.py` — DB and auth configuration (default `MONGO_URI`, `JWT_SECRET`)
-  - `backend/requirements.txt` — Python dependencies
-  - `backend/create_test_users.py` — helper to seed sample admin/doctor users
+## What it is
 
-## Quick start
+**Health Record System** is a full-stack prototype for a small clinic. **Patients** book appointments and read their medical history, **doctors** run their schedule and write diagnoses and prescriptions, and **administrators** manage accounts. One React app serves all three roles. Each role has its own portal and routes, and a Flask + MongoDB API enforces the same permissions on the server.
 
-Prerequisites
-- Node.js 16+ and `npm`
-- Python 3.10+ (or compatible)
-- MongoDB (local or remote)
+> ⚠️ This is a learning/demo prototype. It is not certified for real patient data (HIPAA/GDPR etc.). Use fictional data only.
 
-1) Clone and install frontend deps
+<p align="center"><img src="docs/readme/walkthrough.gif" width="720" alt="Walkthrough: login, patient dashboard, medical records, doctor dashboard, appointments, admin dashboard, user management"></p>
 
-```bash
-cd "d:\Ekansh  Files\HRS\Health Record"
-npm install
+## Features
+
+| | Feature | Who | Details |
+|---|---|---|---|
+| 🔐 | Sign-in & registration | Everyone | JWT sessions, bcrypt-hashed passwords. Public sign-up always creates a patient account. |
+| 🏠 | Patient dashboard | Patient | Upcoming appointments, record count, prescriptions on file, quick actions |
+| 📅 | Book appointments | Patient | Pick a doctor, date, time and notes. Double-booking and past times are rejected. |
+| 🗂️ | My appointments | Patient | Upcoming / Pending / Completed / Cancelled tabs; cancel pending or approved visits |
+| 📋 | Medical records timeline | Patient | Diagnoses, prescriptions and doctor's notes, newest first |
+| 👤 | Profile | Patient | Personal details, blood type, allergies, emergency contact (editable) |
+| 🩺 | Doctor dashboard | Doctor | Today's schedule, patient and appointment stats, recent patients |
+| 👥 | Patient list | Doctor | Search patients you have appointments with; open their chart |
+| 💊 | Diagnoses & prescriptions | Doctor | Add a diagnosis or a prescription (medication, dosage, frequency) to a patient's chart |
+| ✅ | Appointment workflow | Doctor | Approve → complete, or cancel; reschedule date/time |
+| 📊 | Admin dashboard | Admin | User/role/appointment counts and recent activity |
+| 🛠️ | User management | Admin | Create, edit, activate/deactivate and delete users; assign roles |
+| 🛡️ | Access control | All | Role-guarded routes in the UI *and* server-side checks: patients only see their own data, and doctors only see patients they treat |
+
+## Screenshots
+
+All data shown is fictional demo data.
+
+| Patient dashboard | Medical records |
+|---|---|
+| <img src="docs/readme/patient-dashboard.jpg" alt="Patient dashboard"> | <img src="docs/readme/medical-records.jpg" alt="Medical records timeline"> |
+| **Doctor dashboard** | **Appointment management** |
+| <img src="docs/readme/doctor-dashboard.jpg" alt="Doctor dashboard"> | <img src="docs/readme/appointments.jpg" alt="Appointment management"> |
+| **Admin dashboard** | **User management** |
+| <img src="docs/readme/admin-dashboard.png" alt="Admin dashboard"> | <img src="docs/readme/user-management.jpg" alt="User management"> |
+
+<details>
+<summary>Sign-in screen</summary>
+
+<img src="docs/readme/login.jpg" width="640" alt="Sign-in screen">
+</details>
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser["Browser · React 18 + React Router"]
+        P[Patient portal]
+        D[Doctor portal]
+        A[Admin portal]
+        AC[AuthContext<br/>JWT in localStorage]
+    end
+
+    V[Vite dev server<br/>proxies /api]
+
+    subgraph API["Flask API · backend/app.py"]
+        AU[auth.py<br/>register · login · /users/me]
+        AP[appointments.py<br/>book · approve · cancel · reschedule]
+        RE[records.py<br/>diagnoses · prescriptions]
+        AD[admin.py<br/>users · roles · status]
+        TR{{token_required<br/>re-loads user + role<br/>from the DB}}
+    end
+
+    DB[(MongoDB<br/>or in-memory mongomock)]
+
+    P & D & A --> AC --> V --> TR
+    TR --> AU & AP & RE & AD
+    AU & AP & RE & AD --> DB
 ```
 
-2) Prepare a Python virtual environment and install backend deps
+```mermaid
+sequenceDiagram
+    actor Pt as Patient
+    actor Dr as Doctor
+    participant API as Flask API
+    Pt->>API: POST /api/appointments (doctor, date, time)
+    API-->>Pt: 201 · status = pending
+    Dr->>API: PUT /api/appointments/:id {status: approved}
+    Dr->>API: POST /api/records (diagnosis / prescription)
+    Note over API: allowed only if the doctor<br/>has an appointment with the patient
+    Dr->>API: PUT /api/appointments/:id {status: completed}
+    Pt->>API: GET /api/records/patient/:own-id
+    API-->>Pt: timeline of records
+```
 
-Windows (PowerShell):
+## Quickstart
 
-```powershell
+**Prerequisites:** Node.js 20.19+ (required by Vite 7), Python 3.10+. MongoDB is optional (see the in-memory mode below).
+
+```bash
+# 1. Frontend dependencies
+npm install
+
+# 2. Backend dependencies
 cd backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+source .venv/bin/activate          # Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+cp .env.example .env               # then edit values (see table below)
 ```
 
-Linux / macOS:
+**Run without installing MongoDB:** the in-memory database starts empty and seeds the demo accounts automatically.
 
 ```bash
+# terminal 1 — API on http://localhost:5000
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+MONGO_URI=mongomock:// python app.py          # PowerShell: $env:MONGO_URI="mongomock://"; python app.py
 
-3) Configure environment (optional)
-
-Copy `backend/.env.example` to `backend/.env` (or export the variables). No third-party API keys are needed.
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `MONGO_URI` | `mongodb://localhost:27017/` | MongoDB connection string. Set `mongomock://` to run **without MongoDB** (in-memory, demo users auto-seeded, data lost on restart). |
-| `DB_NAME` | `health_record_system` | Database name |
-| `JWT_SECRET` | random per run | Secret for signing login tokens. Set a long random value (`python -c "import secrets; print(secrets.token_urlsafe(48))"`); if unset everyone is signed out on each restart. |
-| `JWT_EXP_HOURS` | `1` | Token lifetime in hours |
-| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated origins allowed to call the API directly |
-| `PORT` | `5000` | Backend port |
-| `API_PROXY_TARGET` (frontend) | `http://localhost:5000` | Where the Vite dev server proxies `/api` |
-
-Quick demo without MongoDB:
-
-```bash
-cd backend
-MONGO_URI=mongomock:// python app.py
-```
-
-4) Seed demo users (optional)
-
-```bash
-cd backend
-python create_test_users.py
-```
-
-This script will attempt to insert sample users if they don't already exist:
-- Patient: `patient.user@example.com` / `PatientPass123` (role: `patient`)
-- Doctor: `doctor.user@example.com` / `DoctorPass123` (role: `doctor`)
-- Admin:  `admin.user@example.com`  / `AdminPass123`  (role: `admin`)
-
-5) Run backend and frontend
-
-Run backend (Flask):
-
-```bash
-cd backend
-python app.py
-# Backend will listen on http://0.0.0.0:5000 by default
-```
-
-Run frontend (Vite dev server):
-
-```bash
-cd "d:\Ekansh  Files\HRS\Health Record"
-npm run dev
-# Frontend will be available at http://localhost:5173 (or the port printed by Vite)
-```
-
-## API highlights
-
-- `POST /api/auth/register` — register a new user (expects `name`, `email`, `password`, optional `role`)
-- `POST /api/auth/login` — authenticate and receive a JWT
-- `GET /api/users/me` — (protected) fetch current user profile (requires `Authorization: Bearer <token>`)
-- `PUT /api/users/me` — (protected) update your own name, email and profile
-- `GET /api/health` — simple health endpoint
-
-## What changed in this version (bug & security fixes)
-
-- **Security:** public sign-up can no longer create admin/doctor accounts (always `patient`); removed the unauthenticated `/api/db-test` endpoint that let anyone read/write the database; no more publicly known default JWT secret; every request re-checks the account in the database, so deactivated/deleted users and role changes take effect immediately (role in the token is not trusted); deactivated users can't log in; doctors can only write records for patients they have an appointment with; non-text input (e.g. `{"$ne": ""}`) is rejected; appointment status values are validated; admins can't demote/deactivate themselves; API responses are `Cache-Control: no-store`; CORS restricted to configured origins.
-- **Bugs:** profile editing now saves (the `PUT /api/users/me` endpoint was missing) and registration stores DOB/gender/phone/address; the doctor dashboard no longer crashes on patients without visit dates; adding a diagnosis/prescription no longer crashes the record page; doctor names show on patient pages (were raw IDs); seeded doctors appear in the booking list; "New Prescription" and "System Reports" no longer link to non-existent pages; appointment dates no longer shift to the UTC day; the edit-appointment form saves; doctors can mark appointments completed; patients can cancel pending requests; removed `alert()` placeholder buttons and fake "Email/Backup" status rows.
-
-Note: The backend uses MongoDB via `pymongo` and the database and JWT configuration is controlled in `backend/config.py` (or by the environment variables listed above).
-
-## Frontend notes
-
-- The frontend is a Vite + React app located under `src/` using React Router and a small `AuthContext` for authentication state.
-- Scripts available in `package.json`: `dev`, `build`, `preview`.
-
-## Security & Production notes
-
-- This project is a prototype. Before any production deployment you should:
-  - Harden authentication and rotate `JWT_SECRET`.
-  - Use HTTPS and secure CORS configuration.
-  - Validate and sanitize all inputs on the backend.
-  - Configure a production-grade MongoDB deployment and credentials.
-  - Add logging, monitoring, and backup/restore procedures.
-
-## Helpful commands
-
-Frontend:
-```bash
-npm install
-npm run dev       # start dev server
-npm run build     # production build
-npm run preview   # preview the built app
-```
-
-Backend:
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python create_test_users.py  # optional seed users
-python app.py
-```
-
-## Contact / next steps
-
-If you want, I can:
-- add a `.env.example` file documenting the environment variables
-- add a `Procfile` / docker-compose for easier local orchestration
-- run a quick smoke test of frontend ↔ backend endpoints (if you want me to run them here)
-
----
-
-This README was updated to reflect the actual Flask backend and MongoDB usage present in the `backend/` folder, and to provide accurate run instructions for both frontend and backend.
-# Health Record System - Working Prototype
-
-A comprehensive, modern health record management system built as a working prototype using React, featuring role-based access control, appointment management, medical records tracking, and professional healthcare UI/UX design.
-
-## 🎯 Project Overview
-
-This is a **WORKING PROTOTYPE** (not production-ready) of a Health Record System that demonstrates:
-- Professional healthcare application design
-- Complete role-based navigation and functionality
-- Mock CRUD operations with local state
-- Responsive, accessible UI/UX
-- Modern React architecture with hooks and context
-
-## 🏗️ Architecture
-
-### Frontend Stack
-- **React 18** - Modern component-based architecture
-- **React Router v6** - Client-side routing and navigation
-- **Context API** - State management for authentication and user data
-- **CSS Modules** - Scoped styling with healthcare-themed design system
-- **Date-fns** - Date manipulation and formatting
-- **Font Awesome** - Professional healthcare icons
-
-### Project Structure
-```
-src/
-├── components/          # Reusable UI components
-├── contexts/          # React Context for state management
-├── pages/            # Page components organized by role
-│   ├── auth/         # Authentication pages
-│   ├── patient/      # Patient portal pages
-│   ├── doctor/       # Doctor portal pages
-│   ├── admin/        # Admin portal pages
-│   └── appointments/ # Appointment management
-├── App.jsx           # Main application with routing
-└── main.jsx          # Application entry point
-```
-
-## 🎭 Role-Based Access Control
-
-### Patient Role
-- **Patient Dashboard** - Personal health overview
-- **Profile Management** - Personal information and medical details
-- **Medical Records** - Complete medical history with timeline view
-- **Appointments** - Book and manage appointments
-- **Health Statistics** - Quick health metrics and status
-
-### Doctor Role
-- **Doctor Dashboard** - Daily schedule and patient overview
-- **Patient Management** - Complete patient list with medical details
-- **Medical Records View** - Patient history and diagnosis
-- **Prescription Management** - Create and manage prescriptions
-- **Appointment Scheduling** - View and manage appointments
-
-### Admin Role
-- **Admin Dashboard** - System-wide statistics and overview
-- **User Management** - Create, edit, delete users with role assignment
-- **System Monitoring** - Basic system status and health indicators
-- **Activity Logs** - Recent system activities and user actions
-
-## 📋 Core Features
-
-### Authentication System
-- **Login/Register** - Clean, professional authentication interface
-- **Role-based Redirect** - Automatic navigation based on user role
-- **Session Management** - Mock authentication with local storage
-- **Form Validation** - Client-side validation with error handling
-
-### Appointment Management
-- **Appointment Booking** - Patient appointment scheduling
-- **Status Management** - Pending, approved, cancelled workflow
-- **Doctor Assignment** - Automatic doctor assignment by specialization
-- **Time Slot Management** - Visual time slot selection
-- **Appointment History** - Complete appointment timeline
-
-### Medical Records System
-- **Timeline View** - Chronological medical history display
-- **Record Creation** - Add new medical records and diagnoses
-- **Prescription Management** - Medication tracking and management
-- **Allergy Tracking** - Patient allergy information
-- **Emergency Contacts** - Critical contact information
-
-### User Management (Admin)
-- **User CRUD Operations** - Create, read, update, delete users
-- **Role Assignment** - Assign and modify user roles
-- **Status Management** - Activate/deactivate user accounts
-- **Bulk Operations** - Multiple user management actions
-
-## 🎨 Design System
-
-### Healthcare Theme
-- **Professional Color Palette** - Medical blues, greens, and neutrals
-- **Accessibility First** - WCAG 2.1 compliant color contrast
-- **Responsive Design** - Mobile-first responsive breakpoints
-- **Consistent Typography** - Inter font family for readability
-- **Icon System** - Healthcare-specific iconography
-
-### UI Components
-- **Cards** - Information containers with shadows and rounded corners
-- **Badges** - Status indicators with color coding
-- **Buttons** - Primary, secondary, success, danger variants
-- **Forms** - Consistent form styling with validation states
-- **Tables** - Responsive data tables with hover effects
-- **Modals** - Overlay dialogs for forms and confirmations
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 16+ and npm/yarn
-- Modern web browser with ES6+ support
-
-### Installation
-```bash
-# Clone or download the project
-# Navigate to project directory
-cd health-record-system
-
-# Install dependencies
-npm install
-
-# Start development server
+# terminal 2 — web app on http://localhost:3000 (proxies /api to :5000)
 npm run dev
 ```
 
-### Demo Credentials
-Access the system using these demo accounts:
+**With a real MongoDB:** set `MONGO_URI` in `backend/.env`, run `python create_test_users.py` once to add the demo accounts, then `python app.py`.
 
-**Patient Account:**
-- Email: `patient@example.com`
-- Password: `password123`
+**Demo accounts** (pick the matching role on the sign-in screen):
 
-**Doctor Account:**
-- Email: `doctor@example.com`
-- Password: `password123`
+| Role | Email | Password |
+|---|---|---|
+| Patient | `patient.user@example.com` | `PatientPass123` |
+| Doctor | `doctor.user@example.com` | `DoctorPass123` |
+| Admin | `admin.user@example.com` | `AdminPass123` |
 
-**Admin Account:**
-- Email: `admin@example.com`
-- Password: `password123`
+Other scripts: `npm run build` (production build into `dist/`) and `npm run preview`.
 
-## 📱 Responsive Design
+## Configuration
 
-### Mobile First Approach
-- **Mobile (320px+)**: Single column layouts, touch-friendly interactions
-- **Tablet (768px+)**: Two-column layouts, enhanced navigation
-- **Desktop (1024px+)**: Full multi-column layouts, sidebar navigation
-- **Large Desktop (1440px+)**: Maximum content width optimization
+Backend settings live in `backend/.env` (template: [`backend/.env.example`](backend/.env.example)). **No third-party API keys are needed.**
 
-### Cross-browser Support
-- Chrome, Firefox, Safari, Edge
-- Mobile Safari, Chrome Mobile
-- Progressive Web App capable
+| Variable | Required? | Default | Where to get it / notes |
+|---|---|---|---|
+| `JWT_SECRET` | **Yes, for any shared or real use** | random per run | Generate it yourself: `python -c "import secrets; print(secrets.token_urlsafe(48))"`. If unset, a random secret is used and everyone is signed out on restart. |
+| `MONGO_URI` | Optional | `mongodb://localhost:27017/` | Your MongoDB connection string (local install, Docker `mongo` image, or MongoDB Atlas → *Connect*). Use `mongomock://` for the in-memory demo database. |
+| `DB_NAME` | Optional | `health_record_system` | Any database name |
+| `JWT_EXP_HOURS` | Optional | `1` | Session lifetime in hours |
+| `CORS_ORIGINS` | Optional | `http://localhost:3000` | Comma-separated origins allowed to call the API directly |
+| `PORT` | Optional | `5000` | API port |
+| `API_PROXY_TARGET` | Optional (frontend shell env) | `http://localhost:5000` | Where the Vite dev server forwards `/api` |
 
-## 🔧 Technical Implementation
+<details>
+<summary><b>Project structure</b></summary>
 
-### State Management
-- **AuthContext** - User authentication and profile management
-- **Local State** - Component-specific state with useState
-- **Mock APIs** - Simulated API calls with setTimeout
-- **Local Storage** - Persistent user sessions
-
-### Navigation & Routing
-- **Protected Routes** - Role-based route protection
-- **Dynamic Routing** - Parameterized routes for patient records
-- **Breadcrumb Navigation** - Contextual navigation assistance
-- **Error Boundaries** - Graceful error handling
-
-### Form Handling
-- **Client Validation** - Real-time form validation
-- **Error Messages** - User-friendly error display
-- **Success Feedback** - Confirmation messages and toasts
-- **Loading States** - Progress indicators during operations
-
-## 🧪 Testing Strategy
-
-### Manual Testing
-- **Role-based Navigation** - Verify correct access for each role
-- **Form Validation** - Test all form inputs and validation
-- **Data Flow** - Verify CRUD operations work correctly
-- **Responsive Design** - Test on multiple device sizes
-
-### User Experience Testing
-- **Navigation Flow** - Intuitive user journey testing
-- **Accessibility** - Keyboard navigation and screen reader testing
-- **Performance** - Loading times and interaction responsiveness
-
-## 🚧 Known Limitations
-
-### Prototype Constraints
-- **No Real Database** - All data is stored in component state
-- **No Authentication** - Mock authentication system
-- **No API Integration** - Simulated API calls with timeouts
-- **Limited Data** - Small dataset for demonstration purposes
-
-### Future Enhancements
-- Real backend integration with database
-- File upload functionality for medical documents
-- Real-time notifications system
-- Advanced reporting and analytics
-- Multi-language support
-- Integration with medical devices
-
-## 📚 Documentation
-
-### Code Organization
-- **Component Documentation** - JSDoc comments for major components
-- **Style Guidelines** - Consistent CSS class naming conventions
-- **State Management** - Clear separation of concerns
-- **Error Handling** - Comprehensive error boundaries and handling
-
-### Deployment
-```bash
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+```text
+Health-Record-System/
+├── index.html                 # Vite entry HTML
+├── vite.config.js             # dev server on :3000, /api proxy
+├── src/
+│   ├── main.jsx, App.jsx      # router + role-protected routes
+│   ├── index.css              # shared styles
+│   ├── contexts/AuthContext.jsx
+│   ├── components/            # Layout, Header, Sidebar, Toast
+│   ├── utils/toast.js
+│   └── pages/
+│       ├── auth/              # Login, Register
+│       ├── patient/           # Dashboard, Profile, MedicalRecords, Appointments
+│       ├── doctor/            # Dashboard, PatientList, PatientMedicalRecordView, PrescriptionForm
+│       ├── admin/             # AdminDashboard, UserManagement
+│       ├── appointments/      # AppointmentList, BookAppointment
+│       └── Unauthorized.jsx
+├── backend/
+│   ├── app.py                 # Flask app, blueprints, security headers
+│   ├── config.py              # env config, MongoDB / mongomock client
+│   ├── auth.py                # register, login, token_required, /users/me
+│   ├── appointments.py        # appointment CRUD + status rules
+│   ├── records.py             # medical records
+│   ├── admin.py               # user management, user lookup
+│   ├── create_test_users.py   # demo account seeding
+│   ├── requirements.txt
+│   └── .env.example
+└── docs/readme/               # README banner, screenshots, walkthrough
 ```
+</details>
 
-### Development
-```bash
-# Start development server
-npm run dev
+### API overview
 
-# Code goes in src/ directory
-# Components are reusable UI elements
-# Pages are full page components
-# Contexts manage global state
-```
+| Method & path | Who | Purpose |
+|---|---|---|
+| `POST /api/auth/register` | public | Create a patient account |
+| `POST /api/auth/login` | public | Get a JWT |
+| `GET` / `PUT /api/users/me` | signed in | Read / update own profile |
+| `GET /api/users?role=doctor` | signed in | List bookable doctors |
+| `GET /api/users/:id` | signed in | Own record, a doctor's public card, or (doctor) a patient they treat |
+| `GET` / `POST /api/users`, `PUT` / `DELETE /api/users/:id` | admin | User management |
+| `GET` / `POST /api/appointments` | signed in / patient | List own appointments / book one |
+| `PUT /api/appointments/:id` | owner | Patient cancels; doctor approves/completes/cancels/reschedules; admin reschedules |
+| `POST /api/records` | doctor | Add diagnosis or prescription for a patient under their care |
+| `GET /api/records/patient/:id` | patient (self) / treating doctor | Medical history |
+| `GET /api/health` | public | Liveness check |
 
-## 🤝 Contributing
+## What's new in this version
 
-This is a prototype system designed for demonstration purposes. For production use, consider:
-- Implementing real authentication and authorization
-- Adding proper database integration
-- Implementing comprehensive testing
-- Adding security measures (CSP, XSS protection)
-- Performance optimization
-- Accessibility improvements
+| Area | Before | After |
+|---|---|---|
+| Sign-up | Anyone could register as **admin** or doctor | Public sign-up always creates a patient; staff accounts are created by an admin |
+| Database access | Unauthenticated `/api/db-test` could read and write the DB | Endpoint removed |
+| Login tokens | Publicly known default secret `change-me-in-prod`; role trusted from the token; deleted or deactivated users kept access | Secret from env (random if unset); every request re-loads the user and role from the DB; inactive users are blocked |
+| Medical records | Any doctor could write into any patient's chart | Only doctors with an appointment with that patient |
+| Input handling | Non-string JSON such as `{"$ne": ""}` reached queries or crashed with a 500 | Rejected with 400; statuses and roles are validated |
+| Profile | "Save" did nothing (endpoint missing); sign-up details were discarded | `PUT /api/users/me` added; sign-up details are stored |
+| Doctor pages | Dashboard crashed; adding a diagnosis crashed the chart; patient IDs were `undefined` | All render and update correctly |
+| Appointments | Doctor names showed as IDs; seeded doctor not bookable; dates shifted to the UTC day; edit form couldn't save; "completed" was unreachable | Names shown; booking works; local dates; reschedule works; doctors can mark visits completed |
+| Layout & links | Top bar hidden under the sidebar; links to non-existent pages; `alert()` placeholder buttons; fake "Email/Backup" status | Fixed layout; dead links and placeholders removed |
+| Local setup | Required a running MongoDB | `MONGO_URI=mongomock://` runs fully in memory with demo users |
 
-## 📄 License
+## Future development
 
-This project is created for demonstration purposes. Please review and adapt according to your specific healthcare compliance requirements (HIPAA, GDPR, etc.).
+These are ideas, not current features:
 
-## 🆘 Support
+- Move the token from `localStorage` to an HttpOnly cookie, and add rate limiting on login
+- Patient-side rescheduling (today patients cancel and re-book)
+- A data source for the "Health Status" dashboard card (it currently shows `N/A`)
+- Document uploads (lab results, scans) and notifications
+- Automated tests (backend pytest suite, frontend component tests)
 
-For questions about this prototype:
-1. Review the documentation above
-2. Check the code comments and component structure
-3. Test with the provided demo credentials
-4. Examine the browser console for any errors
+## Security notes
 
----
-
-**Note**: This is a working Full Stack project designed to demonstrate UI/UX concepts and application flow. It is not intended for production use without significant security, performance, and compliance enhancements.
+- Use fictional data only. This prototype has no audit log, encryption at rest or compliance controls.
+- Always set a strong `JWT_SECRET` and serve over HTTPS outside local development.
+- API responses send `Cache-Control: no-store` so health data isn't cached by browsers.

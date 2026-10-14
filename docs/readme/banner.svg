@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-labelledby="title desc">
+  <title id="title">Health Record System</title>
+  <desc id="desc">Patient records, appointments and prescriptions for patients, doctors and administrators.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b8f8d">
+        <animate attributeName="stop-color" values="#0b8f8d;#0f766e;#059669;#0b8f8d" dur="12s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="55%" stop-color="#0e7490">
+        <animate attributeName="stop-color" values="#0e7490;#0b8f8d;#0f766e;#0e7490" dur="12s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#064e3b">
+        <animate attributeName="stop-color" values="#064e3b;#0c4a6e;#064e3b" dur="12s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <radialGradient id="shine" cx="85%" cy="15%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .title { font: 700 58px 'Segoe UI', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif; fill: #ffffff; letter-spacing: -1px; }
+      .tag { font: 400 23px 'Segoe UI', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif; fill: #d1fae5; }
+      .chip { font: 600 15px 'Segoe UI', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif; fill: #ecfeff; }
+      .in1, .in2, .in3 { opacity: 0; animation: slide 0.9s ease-out forwards; }
+      .in2 { animation-delay: 0.25s; }
+      .in3 { animation-delay: 0.5s; }
+      .pulse { stroke-dasharray: 520; stroke-dashoffset: 520; animation: draw 3.2s ease-in-out infinite; }
+      .glow { animation: breathe 3.2s ease-in-out infinite; }
+      .ring { transform-origin: 1035px 150px; animation: spin 40s linear infinite; }
+      @keyframes slide { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes draw { 0% { stroke-dashoffset: 520; } 55% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -520; } }
+      @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .in1, .in2, .in3 { animation: none; opacity: 1; }
+        .pulse { animation: none; stroke-dashoffset: 0; }
+        .glow, .ring { animation: none; }
+      }
+    </style>
+  </defs>
+
+  <rect width="1200" height="300" rx="22" fill="url(#bg)"/>
+  <rect width="1200" height="300" rx="22" fill="url(#shine)"/>
+
+  <!-- decorative rings -->
+  <g class="ring" fill="none" stroke="#ffffff" stroke-opacity="0.12">
+    <circle cx="1035" cy="150" r="118" stroke-width="2" stroke-dasharray="6 10"/>
+    <circle cx="1035" cy="150" r="88" stroke-width="1.5"/>
+  </g>
+
+  <!-- heartbeat line -->
+  <g class="glow" filter="url(#glow)">
+    <path class="pulse" d="M930 150 H985 L1003 112 L1025 192 L1047 92 L1067 170 L1081 150 H1140"
+          fill="none" stroke="#a7f3d0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- medical cross mark -->
+  <g transform="translate(70 70)">
+    <g class="in1">
+      <rect width="64" height="64" rx="16" fill="#ffffff" fill-opacity="0.16" stroke="#ffffff" stroke-opacity="0.35"/>
+      <path d="M32 16 V48 M16 32 H48" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <text class="title in1" x="152" y="122">Health Record System</text>
+  <text class="tag in2" x="70" y="178">Patient records, appointments &amp; prescriptions — one secure place</text>
+
+  <g class="in3">
+    <rect x="70" y="208" width="112" height="34" rx="17" fill="#ffffff" fill-opacity="0.14"/>
+    <text class="chip" x="126" y="230" text-anchor="middle">Patients</text>
+    <rect x="194" y="208" width="104" height="34" rx="17" fill="#ffffff" fill-opacity="0.14"/>
+    <text class="chip" x="246" y="230" text-anchor="middle">Doctors</text>
+    <rect x="310" y="208" width="104" height="34" rx="17" fill="#ffffff" fill-opacity="0.14"/>
+    <text class="chip" x="362" y="230" text-anchor="middle">Admins</text>
+    <rect x="426" y="208" width="190" height="34" rx="17" fill="#ffffff" fill-opacity="0.14"/>
+    <text class="chip" x="521" y="230" text-anchor="middle">React · Flask · MongoDB</text>
+  </g>
+</svg>

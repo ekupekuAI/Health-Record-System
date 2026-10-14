@@ -390,8 +390,13 @@ body {
 }
 
 /* Main Content */
-.main-content {
+/* Offset the whole column (header + page) for the fixed sidebar; offsetting only <main>
+   left the header hidden underneath the sidebar. */
+.main-content-wrapper {
   margin-left: 280px;
+}
+
+.main-content {
   padding: var(--spacing-6);
   min-height: 100vh;
 }
@@ -428,8 +433,11 @@ body {
     transform: translateX(0);
   }
   
-  .main-content {
+  .main-content-wrapper {
     margin-left: 0;
+  }
+
+  .main-content {
     padding: var(--spacing-4);
   }
   

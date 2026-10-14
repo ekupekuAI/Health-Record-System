@@ -33,7 +33,9 @@ const AdminDashboard = () => {
           usersJson.users.slice(0,5).forEach(u => recent.push({ id: `u-${u._id}`, type: 'user_registered', user: u.name || u.email, role: u.role, timestamp: u.createdAt || '', description: 'User created' }))
         }
         if (Array.isArray(apptJson.appointments)) {
-          apptJson.appointments.slice(0,5).forEach(a => recent.push({ id: `a-${a._id}`, type: 'appointment_booked', user: a.patient_id, role: 'patient', timestamp: a.datetime || '', description: 'Appointment record' }))
+          // Show the patient's name rather than their raw database id.
+          const nameById = Object.fromEntries((usersJson.users || []).map(u => [u._id, u.name || u.email]))
+          apptJson.appointments.slice(0,5).forEach(a => recent.push({ id: `a-${a._id}`, type: 'appointment_booked', user: nameById[a.patient_id] || a.patient_id, role: 'patient', timestamp: a.datetime || '', description: 'Appointment record' }))
         }
         setRecentActivity(recent.slice(0,8))
       } catch (e) {

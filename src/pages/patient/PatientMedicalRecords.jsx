@@ -90,10 +90,12 @@ const PatientMedicalRecords = () => {
                   </div>
                   
                   <div className="record-body">
-                    <div className="record-section">
-                      <h4 className="section-title">Diagnosis</h4>
-                      <p className="diagnosis-text">{record.diagnosis}</p>
-                    </div>
+                    {record.diagnosis && (
+                      <div className="record-section">
+                        <h4 className="section-title">Diagnosis</h4>
+                        <p className="diagnosis-text">{record.diagnosis}</p>
+                      </div>
+                    )}
                     
                     {record.symptoms.length > 0 && (
                       <div className="record-section">
